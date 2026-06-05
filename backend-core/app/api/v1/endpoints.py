@@ -28,6 +28,8 @@ class ProjectResponse(BaseModel):
     id: str
     name: str
     language: Optional[str] = None
+    duration: Optional[float] = None
+    language_probability: Optional[float] = None
 
 def get_project_metadata(project_path: str) -> dict:
     metadata_path = os.path.join(project_path, "metadata.json")
@@ -59,7 +61,11 @@ def process_audio_language(project_path: str, audio_file_path: str):
         return
     try:
         segments, info = whisper_model.transcribe(audio_file_path, beam_size=1)
-        update_project_metadata(project_path, {"language": info.language})
+        update_project_metadata(project_path, {
+            "language": info.language,
+            "duration": info.duration,
+            "language_probability": info.language_probability
+        })
         print(f"Detected language '{info.language}' for project {project_path}")
     except Exception as e:
         print(f"Error during whisper transcription: {e}")
@@ -88,7 +94,9 @@ def list_projects():
             meta = get_project_metadata(project_path)
             name = meta.get("name", f"Project {pid[:8]}")
             lang = meta.get("language")
-            projects.append({"id": pid, "name": name, "language": lang})
+            duration = meta.get("duration")
+            prob = meta.get("language_probability")
+            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob})
     return projects
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
@@ -99,7 +107,9 @@ def get_project(project_id: str):
     meta = get_project_metadata(project_path)
     name = meta.get("name", f"Project {project_id[:8]}")
     lang = meta.get("language")
-    return {"id": project_id, "name": name, "language": lang}
+    duration = meta.get("duration")
+    prob = meta.get("language_probability")
+    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob}
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(project_id: str, data: ProjectUpdate):

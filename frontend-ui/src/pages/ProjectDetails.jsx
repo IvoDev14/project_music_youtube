@@ -124,9 +124,23 @@ const ProjectDetails = () => {
                     <source src={`${HOST}${audioPath}`} />
                   </audio>
                   {project.language && (
-                    <p style={{ marginTop: '0.5rem', color: '#bbb', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                      info of the audio: - Language detected: {project.language}
-                    </p>
+                    <div style={{ marginTop: '1rem', background: '#2a2a2a', padding: '1rem', borderRadius: '8px', border: '1px solid #444' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff', fontSize: '0.95rem' }}>Audio Information</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <span style={{ color: '#888', fontSize: '0.85rem' }}>Language: </span>
+                          <span style={{ color: '#ddd', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{project.language}</span>
+                        </div>
+                        {project.duration && (
+                          <div>
+                            <span style={{ color: '#888', fontSize: '0.85rem' }}>Duration: </span>
+                            <span style={{ color: '#ddd', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                              {Math.floor(project.duration / 60)}:{String(Math.round(project.duration % 60)).padStart(2, '0')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
