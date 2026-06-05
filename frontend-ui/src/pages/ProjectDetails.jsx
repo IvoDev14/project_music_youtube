@@ -39,6 +39,17 @@ const ProjectDetails = () => {
     }
   };
 
+  const deleteProject = async () => {
+    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+
+    try {
+      await axios.delete(`${API_BASE}/projects/${id}`);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Failed to delete project', error);
+    }
+  };
+
   const fetchMedia = async () => {
     try {
       const response = await axios.get(`${API_BASE}/projects/${id}/media`);
@@ -85,6 +96,15 @@ const ProjectDetails = () => {
             }}
           >
             Edit
+          </button>
+          <button 
+            onClick={deleteProject}
+            style={{
+              fontSize: '1rem', padding: '4px 12px', background: 'transparent', color: '#ff4444', 
+              border: '1px solid #ff4444', borderRadius: '4px', cursor: 'pointer'
+            }}
+          >
+            Delete
           </button>
         </h1>
         <p style={{ color: '#a0a0a0', margin: 0 }}>ID: {id}</p>

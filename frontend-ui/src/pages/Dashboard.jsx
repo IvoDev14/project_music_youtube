@@ -33,6 +33,18 @@ const Dashboard = () => {
     }
   };
 
+  const deleteProject = async (e, id) => {
+    e.stopPropagation(); // prevent navigating to project details
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+
+    try {
+      await axios.delete(`${API_BASE}/projects/${id}`);
+      fetchProjects();
+    } catch (error) {
+      console.error('Failed to delete project', error);
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -69,7 +81,8 @@ const Dashboard = () => {
               borderRadius: '12px',
               border: '1px solid #333',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              position: 'relative'
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.borderColor = '#7f00ff';
@@ -80,8 +93,26 @@ const Dashboard = () => {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>{project.name}</h3>
-            <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>ID: {project.id}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>{project.name}</h3>
+                <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>ID: {project.id}</p>
+              </div>
+              <button
+                onClick={(e) => deleteProject(e, project.id)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #ff4444',
+                  color: '#ff4444',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
         {projects.length === 0 && (

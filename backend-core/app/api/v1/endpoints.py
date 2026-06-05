@@ -109,6 +109,14 @@ def update_project(project_id: str, data: ProjectUpdate):
     set_project_name(project_path, data.name)
     return {"id": project_id, "name": data.name}
 
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: str):
+    project_path = os.path.join(PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        raise HTTPException(status_code=404, detail="Project not found")
+    shutil.rmtree(project_path)
+    return {"message": "Project deleted successfully"}
+
 @router.post("/projects/{project_id}/audio")
 def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     project_dir = os.path.join(PROJECTS_DIR, project_id)
