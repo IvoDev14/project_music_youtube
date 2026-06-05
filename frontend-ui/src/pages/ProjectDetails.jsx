@@ -16,6 +16,14 @@ const ProjectDetails = () => {
   useEffect(() => {
     fetchProjectInfo();
     fetchMedia();
+
+    // Poll for project info to catch background task completions (e.g., lyrics extraction)
+    const intervalId = setInterval(() => {
+      fetchProjectInfo();
+      fetchMedia();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [id]);
 
   const fetchProjectInfo = async () => {
@@ -84,6 +92,15 @@ const ProjectDetails = () => {
 
   return (
     <div>
+      <style>
+        {`
+          @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+          }
+        `}
+      </style>
       <div style={{ marginBottom: '2rem' }}>
         <Link to="/" style={{ color: '#888', textDecoration: 'none', marginBottom: '1rem', display: 'inline-block' }}>&larr; Back to Dashboard</Link>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '0.5rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -139,7 +156,13 @@ const ProjectDetails = () => {
                             </span>
                           </div>
                         )}
-                        {project.lyrics && (
+                        {!project.lyrics ? (
+                          <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', padding: '0.5rem 1rem', background: '#1a1a1a', borderRadius: '6px', border: '1px solid #333' }}>
+                            <span style={{ color: '#ff007f', fontSize: '0.85rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite', display: 'inline-block' }}>
+                              ⏳ Extracting lyrics in the background...
+                            </span>
+                          </div>
+                        ) : (
                           <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                             <details style={{ background: '#1a1a1a', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #333' }}>
                               <summary style={{ color: '#bbb', fontSize: '0.85rem', fontWeight: 'bold', outline: 'none' }}>View Lyrics</summary>
