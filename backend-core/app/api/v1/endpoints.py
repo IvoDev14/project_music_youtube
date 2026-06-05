@@ -62,14 +62,20 @@ def process_audio_language(project_path: str, audio_file_path: str):
         return
     try:
         segments, info = whisper_model.transcribe(audio_file_path, beam_size=1)
-        lyrics = "\n".join([segment.text.strip() for segment in segments])
+        # Save initial info quickly so the UI can update
         update_project_metadata(project_path, {
             "language": info.language,
             "duration": info.duration,
-            "language_probability": info.language_probability,
-            "lyrics": lyrics
+            "language_probability": info.language_probability
         })
         print(f"Detected language '{info.language}' for project {project_path}")
+        
+        # Now consume segments to get lyrics (this takes time)
+        lyrics = "\n".join([segment.text.strip() for segment in segments])
+        update_project_metadata(project_path, {
+            "lyrics": lyrics
+        })
+        print(f"Lyrics extracted for project {project_path}")
     except Exception as e:
         print(f"Error during whisper transcription: {e}")
 
