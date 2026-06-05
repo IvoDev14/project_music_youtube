@@ -59,6 +59,11 @@ const ProjectDetails = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       await fetchMedia();
+      if (type === 'audio') {
+        // Fetch project info to get the detected language, delay slightly for background task
+        setTimeout(fetchProjectInfo, 2000);
+        setTimeout(fetchProjectInfo, 5000);
+      }
     } catch (error) {
       console.error(`Failed to upload ${type}`, error);
     } finally {
@@ -98,6 +103,11 @@ const ProjectDetails = () => {
                   <audio controls style={{ width: '100%' }}>
                     <source src={`${HOST}${audioPath}`} />
                   </audio>
+                  {project.language && (
+                    <p style={{ marginTop: '0.5rem', color: '#bbb', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                      info of the audio: - Language detected: {project.language}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

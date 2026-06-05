@@ -5,6 +5,14 @@ import json
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
+from fastapi import BackgroundTasks
+
+try:
+    from faster_whisper import WhisperModel
+    # Load model globally to avoid loading it on every request
+    whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8")
+except ImportError:
+    whisper_model = None
 
 router = APIRouter()
 
@@ -19,22 +27,42 @@ class ProjectUpdate(BaseModel):
 class ProjectResponse(BaseModel):
     id: str
     name: str
+    language: Optional[str] = None
 
-def get_project_name(project_path: str, default_name: str) -> str:
+def get_project_metadata(project_path: str) -> dict:
     metadata_path = os.path.join(project_path, "metadata.json")
     if os.path.exists(metadata_path):
         try:
             with open(metadata_path, "r") as f:
-                data = json.load(f)
-                return data.get("name", default_name)
+                return json.load(f)
         except Exception:
-            return default_name
-    return default_name
+            pass
+    return {}
+
+def get_project_name(project_path: str, default_name: str) -> str:
+    data = get_project_metadata(project_path)
+    return data.get("name", default_name)
+
+def update_project_metadata(project_path: str, data: dict):
+    metadata_path = os.path.join(project_path, "metadata.json")
+    current_data = get_project_metadata(project_path)
+    current_data.update(data)
+    with open(metadata_path, "w") as f:
+        json.dump(current_data, f)
 
 def set_project_name(project_path: str, name: str):
-    metadata_path = os.path.join(project_path, "metadata.json")
-    with open(metadata_path, "w") as f:
-        json.dump({"name": name}, f)
+    update_project_metadata(project_path, {"name": name})
+
+def process_audio_language(project_path: str, audio_file_path: str):
+    if not whisper_model:
+        print("Whisper model not loaded, skipping transcription.")
+        return
+    try:
+        segments, info = whisper_model.transcribe(audio_file_path, beam_size=1)
+        update_project_metadata(project_path, {"language": info.language})
+        print(f"Detected language '{info.language}' for project {project_path}")
+    except Exception as e:
+        print(f"Error during whisper transcription: {e}")
 
 @router.post("/projects", response_model=ProjectResponse)
 def create_project(data: Optional[ProjectCreate] = None):
@@ -57,8 +85,10 @@ def list_projects():
     for pid in os.listdir(PROJECTS_DIR):
         project_path = os.path.join(PROJECTS_DIR, pid)
         if os.path.isdir(project_path):
-            name = get_project_name(project_path, f"Project {pid[:8]}")
-            projects.append({"id": pid, "name": name})
+            meta = get_project_metadata(project_path)
+            name = meta.get("name", f"Project {pid[:8]}")
+            lang = meta.get("language")
+            projects.append({"id": pid, "name": name, "language": lang})
     return projects
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
@@ -66,8 +96,10 @@ def get_project(project_id: str):
     project_path = os.path.join(PROJECTS_DIR, project_id)
     if not os.path.exists(project_path):
         raise HTTPException(status_code=404, detail="Project not found")
-    name = get_project_name(project_path, f"Project {project_id[:8]}")
-    return {"id": project_id, "name": name}
+    meta = get_project_metadata(project_path)
+    name = meta.get("name", f"Project {project_id[:8]}")
+    lang = meta.get("language")
+    return {"id": project_id, "name": name, "language": lang}
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(project_id: str, data: ProjectUpdate):
@@ -78,14 +110,17 @@ def update_project(project_id: str, data: ProjectUpdate):
     return {"id": project_id, "name": data.name}
 
 @router.post("/projects/{project_id}/audio")
-def upload_audio(project_id: str, file: UploadFile = File(...)):
-    project_audio_dir = os.path.join(PROJECTS_DIR, project_id, "raw_audio")
+def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    project_dir = os.path.join(PROJECTS_DIR, project_id)
+    project_audio_dir = os.path.join(project_dir, "raw_audio")
     if not os.path.exists(project_audio_dir):
         raise HTTPException(status_code=404, detail="Project not found")
     
     file_path = os.path.join(project_audio_dir, file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    
+    background_tasks.add_task(process_audio_language, project_dir, file_path)
     
     return {"message": "Audio uploaded successfully", "filename": file.filename}
 
