@@ -30,6 +30,7 @@ class ProjectResponse(BaseModel):
     language: Optional[str] = None
     duration: Optional[float] = None
     language_probability: Optional[float] = None
+    lyrics: Optional[str] = None
 
 def get_project_metadata(project_path: str) -> dict:
     metadata_path = os.path.join(project_path, "metadata.json")
@@ -61,10 +62,12 @@ def process_audio_language(project_path: str, audio_file_path: str):
         return
     try:
         segments, info = whisper_model.transcribe(audio_file_path, beam_size=1)
+        lyrics = "\n".join([segment.text.strip() for segment in segments])
         update_project_metadata(project_path, {
             "language": info.language,
             "duration": info.duration,
-            "language_probability": info.language_probability
+            "language_probability": info.language_probability,
+            "lyrics": lyrics
         })
         print(f"Detected language '{info.language}' for project {project_path}")
     except Exception as e:
@@ -96,7 +99,8 @@ def list_projects():
             lang = meta.get("language")
             duration = meta.get("duration")
             prob = meta.get("language_probability")
-            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob})
+            lyrics = meta.get("lyrics")
+            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics})
     return projects
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
@@ -109,7 +113,8 @@ def get_project(project_id: str):
     lang = meta.get("language")
     duration = meta.get("duration")
     prob = meta.get("language_probability")
-    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob}
+    lyrics = meta.get("lyrics")
+    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics}
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(project_id: str, data: ProjectUpdate):

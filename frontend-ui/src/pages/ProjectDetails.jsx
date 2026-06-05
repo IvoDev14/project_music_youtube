@@ -139,6 +139,16 @@ const ProjectDetails = () => {
                             </span>
                           </div>
                         )}
+                        {project.lyrics && (
+                          <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                            <details style={{ background: '#1a1a1a', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #333' }}>
+                              <summary style={{ color: '#bbb', fontSize: '0.85rem', fontWeight: 'bold', outline: 'none' }}>View Lyrics</summary>
+                              <div style={{ color: '#ddd', fontSize: '0.9rem', marginTop: '1rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                {project.lyrics}
+                              </div>
+                            </details>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
