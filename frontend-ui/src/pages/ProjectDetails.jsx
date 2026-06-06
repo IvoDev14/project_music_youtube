@@ -150,19 +150,49 @@ const ProjectDetails = () => {
                   <audio controls style={{ width: '100%' }}>
                     <source src={`${HOST}${audioPath}`} />
                   </audio>
-                  {project.language && (
-                    <div style={{ marginTop: '1rem', background: '#2a2a2a', padding: '1rem', borderRadius: '8px', border: '1px solid #444' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff', fontSize: '0.95rem' }}>Audio Information</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ marginTop: '1rem', background: '#2a2a2a', padding: '1rem', borderRadius: '8px', border: '1px solid #444' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff', fontSize: '0.95rem' }}>Audio Information</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {!project.language ? (
+                        <div>
+                          <span style={{ color: '#888', fontSize: '0.85rem' }}>Language: </span>
+                          <span style={{ color: '#ff007f', fontSize: '0.85rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite', display: 'inline-block' }}>
+                            Detecting...
+                          </span>
+                        </div>
+                      ) : (
                         <div>
                           <span style={{ color: '#888', fontSize: '0.85rem' }}>Language: </span>
                           <span style={{ color: '#ddd', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{project.language}</span>
                         </div>
-                        {project.duration && (
+                      )}
+                      {!project.duration ? (
+                        <div>
+                          <span style={{ color: '#888', fontSize: '0.85rem' }}>Duration: </span>
+                          <span style={{ color: '#ff007f', fontSize: '0.85rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite', display: 'inline-block' }}>
+                            Detecting...
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span style={{ color: '#888', fontSize: '0.85rem' }}>Duration: </span>
+                          <span style={{ color: '#ddd', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                            {Math.floor(project.duration / 60)}:{String(Math.round(project.duration % 60)).padStart(2, '0')}
+                          </span>
+                        </div>
+                      )}
+                        {!project.bpm ? (
                           <div>
-                            <span style={{ color: '#888', fontSize: '0.85rem' }}>Duration: </span>
+                            <span style={{ color: '#888', fontSize: '0.85rem' }}>BPM: </span>
+                            <span style={{ color: '#ff007f', fontSize: '0.85rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite', display: 'inline-block' }}>
+                              Detecting...
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span style={{ color: '#888', fontSize: '0.85rem' }}>BPM: </span>
                             <span style={{ color: '#ddd', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                              {Math.floor(project.duration / 60)}:{String(Math.round(project.duration % 60)).padStart(2, '0')}
+                              {project.bpm}
                             </span>
                           </div>
                         )}
@@ -203,7 +233,6 @@ const ProjectDetails = () => {
                         )}
                       </div>
                     </div>
-                  )}
                 </div>
               ))}
             </div>

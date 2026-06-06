@@ -10,7 +10,7 @@ from fastapi import BackgroundTasks
 try:
     from faster_whisper import WhisperModel
     # Load model globally to avoid loading it on every request
-    whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8")
+    whisper_model = WhisperModel("small", device="cpu", compute_type="int8")
 except ImportError:
     whisper_model = None
 
@@ -31,6 +31,7 @@ class ProjectResponse(BaseModel):
     duration: Optional[float] = None
     language_probability: Optional[float] = None
     lyrics: Optional[str] = None
+    bpm: Optional[float] = None
 
 def get_project_metadata(project_path: str) -> dict:
     metadata_path = os.path.join(project_path, "metadata.json")
@@ -56,7 +57,19 @@ def update_project_metadata(project_path: str, data: dict):
 def set_project_name(project_path: str, name: str):
     update_project_metadata(project_path, {"name": name})
 
+def process_audio_bpm(project_path: str, audio_file_path: str):
+    try:
+        import librosa
+        y, sr = librosa.load(audio_file_path)
+        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+        bpm = float(tempo[0]) if hasattr(tempo, "__len__") else float(tempo)
+        update_project_metadata(project_path, {"bpm": round(bpm, 1)})
+        print(f"Detected BPM {bpm} for project {project_path}")
+    except Exception as e:
+        print(f"Error extracting BPM: {e}")
+
 def process_audio_language(project_path: str, audio_file_path: str):
+
     if not whisper_model:
         print("Whisper model not loaded, skipping transcription.")
         return
@@ -106,7 +119,8 @@ def list_projects():
             duration = meta.get("duration")
             prob = meta.get("language_probability")
             lyrics = meta.get("lyrics")
-            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics})
+            bpm = meta.get("bpm")
+            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics, "bpm": bpm})
     return projects
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
@@ -120,7 +134,8 @@ def get_project(project_id: str):
     duration = meta.get("duration")
     prob = meta.get("language_probability")
     lyrics = meta.get("lyrics")
-    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics}
+    bpm = meta.get("bpm")
+    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics, "bpm": bpm}
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(project_id: str, data: ProjectUpdate):
@@ -150,6 +165,7 @@ def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: Uploa
         shutil.copyfileobj(file.file, buffer)
     
     background_tasks.add_task(process_audio_language, project_dir, file_path)
+    background_tasks.add_task(process_audio_bpm, project_dir, file_path)
     
     return {"message": "Audio uploaded successfully", "filename": file.filename}
 
