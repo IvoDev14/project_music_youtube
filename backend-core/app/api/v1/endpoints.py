@@ -74,7 +74,13 @@ def process_audio_metadata(project_path: str, audio_file_path: str):
         print("Whisper model not loaded, skipping transcription.")
         return
     try:
-        segments, info = whisper_model.transcribe(audio_file_path, beam_size=1)
+        segments, info = whisper_model.transcribe(
+            audio_file_path,
+            beam_size=1,
+            word_timestamps=True,
+            no_speech_threshold=0.6,
+            condition_on_previous_text=False
+        )
         # Save initial info quickly so the UI can update
         update_project_metadata(project_path, {
             "language": info.language,
