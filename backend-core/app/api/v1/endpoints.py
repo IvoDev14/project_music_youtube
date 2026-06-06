@@ -32,27 +32,37 @@ class ProjectResponse(BaseModel):
     language_probability: Optional[float] = None
     lyrics: Optional[str] = None
     bpm: Optional[float] = None
+    subtitles: Optional[List[dict]] = []
+    timeline: Optional[List[dict]] = []
 
 def get_project_metadata(project_path: str) -> dict:
     metadata_path = os.path.join(project_path, "metadata.json")
     if os.path.exists(metadata_path):
         try:
             with open(metadata_path, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            if "metadata" not in data:
+                data = {"metadata": data, "subtitles": [], "timeline": []}
+            return data
         except Exception:
             pass
-    return {}
+    return {"metadata": {}, "subtitles": [], "timeline": []}
 
 def get_project_name(project_path: str, default_name: str) -> str:
     data = get_project_metadata(project_path)
-    return data.get("name", default_name)
+    return data["metadata"].get("name", default_name)
 
-def update_project_metadata(project_path: str, data: dict):
+def update_project_metadata(project_path: str, data, section: str = "metadata"):
     metadata_path = os.path.join(project_path, "metadata.json")
     current_data = get_project_metadata(project_path)
-    current_data.update(data)
+    
+    if section == "metadata":
+        current_data["metadata"].update(data)
+    else:
+        current_data[section] = data
+        
     with open(metadata_path, "w") as f:
-        json.dump(current_data, f)
+        json.dump(current_data, f, indent=4)
 
 def set_project_name(project_path: str, name: str):
     update_project_metadata(project_path, {"name": name})
@@ -92,12 +102,14 @@ def process_audio_metadata(project_path: str, audio_file_path: str):
         # Extract BPM before consuming segments for lyrics
         process_audio_bpm(project_path, audio_file_path)
         
-        # Now consume segments to get lyrics (this takes time)
-        lyrics = "\n".join([segment.text.strip() for segment in segments])
-        update_project_metadata(project_path, {
-            "lyrics": lyrics
-        })
-        print(f"Lyrics extracted for project {project_path}")
+        # Now consume segments to get lyrics and subtitles
+        segments_list = list(segments)
+        lyrics = "\n".join([segment.text.strip() for segment in segments_list])
+        subtitles = [{"start": segment.start, "end": segment.end, "text": segment.text.strip()} for segment in segments_list]
+        
+        update_project_metadata(project_path, {"lyrics": lyrics})
+        update_project_metadata(project_path, subtitles, section="subtitles")
+        print(f"Lyrics and subtitles extracted for project {project_path}")
     except Exception as e:
         print(f"Error during whisper transcription: {e}")
 
@@ -123,13 +135,19 @@ def list_projects():
         project_path = os.path.join(PROJECTS_DIR, pid)
         if os.path.isdir(project_path):
             meta = get_project_metadata(project_path)
-            name = meta.get("name", f"Project {pid[:8]}")
-            lang = meta.get("language")
-            duration = meta.get("duration")
-            prob = meta.get("language_probability")
-            lyrics = meta.get("lyrics")
-            bpm = meta.get("bpm")
-            projects.append({"id": pid, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics, "bpm": bpm})
+            name = meta["metadata"].get("name", f"Project {pid[:8]}")
+            lang = meta["metadata"].get("language")
+            duration = meta["metadata"].get("duration")
+            prob = meta["metadata"].get("language_probability")
+            lyrics = meta["metadata"].get("lyrics")
+            bpm = meta["metadata"].get("bpm")
+            subtitles = meta.get("subtitles", [])
+            timeline = meta.get("timeline", [])
+            projects.append({
+                "id": pid, "name": name, "language": lang, "duration": duration, 
+                "language_probability": prob, "lyrics": lyrics, "bpm": bpm,
+                "subtitles": subtitles, "timeline": timeline
+            })
     return projects
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
@@ -138,13 +156,19 @@ def get_project(project_id: str):
     if not os.path.exists(project_path):
         raise HTTPException(status_code=404, detail="Project not found")
     meta = get_project_metadata(project_path)
-    name = meta.get("name", f"Project {project_id[:8]}")
-    lang = meta.get("language")
-    duration = meta.get("duration")
-    prob = meta.get("language_probability")
-    lyrics = meta.get("lyrics")
-    bpm = meta.get("bpm")
-    return {"id": project_id, "name": name, "language": lang, "duration": duration, "language_probability": prob, "lyrics": lyrics, "bpm": bpm}
+    name = meta["metadata"].get("name", f"Project {project_id[:8]}")
+    lang = meta["metadata"].get("language")
+    duration = meta["metadata"].get("duration")
+    prob = meta["metadata"].get("language_probability")
+    lyrics = meta["metadata"].get("lyrics")
+    bpm = meta["metadata"].get("bpm")
+    subtitles = meta.get("subtitles", [])
+    timeline = meta.get("timeline", [])
+    return {
+        "id": project_id, "name": name, "language": lang, "duration": duration, 
+        "language_probability": prob, "lyrics": lyrics, "bpm": bpm,
+        "subtitles": subtitles, "timeline": timeline
+    }
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(project_id: str, data: ProjectUpdate):
@@ -193,8 +217,9 @@ def retry_transcription(project_id: str, background_tasks: BackgroundTasks):
         
     audio_file_path = os.path.join(audio_dir, files[0])
     
-    # Clear lyrics so the frontend shows the loading animation again
+    # Clear lyrics and subtitles so the frontend shows the loading animation again
     update_project_metadata(project_dir, {"lyrics": None})
+    update_project_metadata(project_dir, [], section="subtitles")
     
     background_tasks.add_task(process_audio_metadata, project_dir, audio_file_path)
     
