@@ -153,6 +153,29 @@ def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: Uploa
     
     return {"message": "Audio uploaded successfully", "filename": file.filename}
 
+@router.post("/projects/{project_id}/transcribe")
+def retry_transcription(project_id: str, background_tasks: BackgroundTasks):
+    project_dir = os.path.join(PROJECTS_DIR, project_id)
+    if not os.path.exists(project_dir):
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    audio_dir = os.path.join(project_dir, "raw_audio")
+    if not os.path.exists(audio_dir):
+        raise HTTPException(status_code=400, detail="No audio to transcribe")
+        
+    files = [f for f in os.listdir(audio_dir) if os.path.isfile(os.path.join(audio_dir, f))]
+    if not files:
+        raise HTTPException(status_code=400, detail="No audio to transcribe")
+        
+    audio_file_path = os.path.join(audio_dir, files[0])
+    
+    # Clear lyrics so the frontend shows the loading animation again
+    update_project_metadata(project_dir, {"lyrics": None})
+    
+    background_tasks.add_task(process_audio_language, project_dir, audio_file_path)
+    
+    return {"message": "Transcription task restarted"}
+
 @router.post("/projects/{project_id}/video")
 def upload_video(project_id: str, file: UploadFile = File(...)):
     project_video_dir = os.path.join(PROJECTS_DIR, project_id, "raw_video")

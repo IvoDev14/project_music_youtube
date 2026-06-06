@@ -67,6 +67,16 @@ const ProjectDetails = () => {
     }
   };
 
+  const handleRetryTranscription = async () => {
+    try {
+      await axios.post(`${API_BASE}/projects/${id}/transcribe`);
+      alert("Transcription background task restarted!");
+    } catch (error) {
+      console.error('Failed to restart transcription', error);
+      alert("Failed to restart transcription.");
+    }
+  };
+
   const handleUpload = async (file, type) => {
     if (!file) return;
     setIsUploading(true);
@@ -165,7 +175,26 @@ const ProjectDetails = () => {
                         ) : (
                           <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                             <details style={{ background: '#1a1a1a', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #333' }}>
-                              <summary style={{ color: '#bbb', fontSize: '0.85rem', fontWeight: 'bold', outline: 'none' }}>View Lyrics</summary>
+                              <summary style={{ color: '#bbb', fontSize: '0.85rem', fontWeight: 'bold', outline: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                View Lyrics
+                                <button 
+                                  onClick={(e) => { e.preventDefault(); handleRetryTranscription(); }}
+                                  style={{
+                                    background: 'transparent',
+                                    border: '1px solid #ff007f',
+                                    color: '#ff007f',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onMouseOver={(e) => { e.currentTarget.style.background = '#ff007f'; e.currentTarget.style.color = '#fff'; }}
+                                  onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ff007f'; }}
+                                >
+                                  Regenerate
+                                </button>
+                              </summary>
                               <div style={{ color: '#ddd', fontSize: '0.9rem', marginTop: '1rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                                 {project.lyrics}
                               </div>
