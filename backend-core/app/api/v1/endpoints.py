@@ -68,7 +68,7 @@ def process_audio_bpm(project_path: str, audio_file_path: str):
     except Exception as e:
         print(f"Error extracting BPM: {e}")
 
-def process_audio_language(project_path: str, audio_file_path: str):
+def process_audio_metadata(project_path: str, audio_file_path: str):
 
     if not whisper_model:
         print("Whisper model not loaded, skipping transcription.")
@@ -167,7 +167,7 @@ def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: Uploa
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    background_tasks.add_task(process_audio_language, project_dir, file_path)
+    background_tasks.add_task(process_audio_metadata, project_dir, file_path)
     
     return {"message": "Audio uploaded successfully", "filename": file.filename}
 
@@ -190,7 +190,7 @@ def retry_transcription(project_id: str, background_tasks: BackgroundTasks):
     # Clear lyrics so the frontend shows the loading animation again
     update_project_metadata(project_dir, {"lyrics": None})
     
-    background_tasks.add_task(process_audio_language, project_dir, audio_file_path)
+    background_tasks.add_task(process_audio_metadata, project_dir, audio_file_path)
     
     return {"message": "Transcription task restarted"}
 
