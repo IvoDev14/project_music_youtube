@@ -19,6 +19,7 @@ This project is divided into distinct, modular parts:
 To run the full stack locally, you will need two separate terminal windows—one for the backend and one for the frontend.
 
 ### Prerequisites
+
 - **Node.js** (v16+ recommended)
 - **Python** (3.9+ recommended)
 - **FFmpeg** (Required for the upcoming rendering phase. Install via `brew install ffmpeg` on macOS)
@@ -42,6 +43,7 @@ pip install -r requirements.txt
 # Start the FastAPI server
 uvicorn main:app --reload
 ```
+
 The backend API will be running at `http://localhost:8000`.
 
 ### 2. Start the Frontend App (React/Vite)
@@ -57,11 +59,13 @@ npm install
 # Start the Vite development server
 npm run dev
 ```
+
 The frontend UI will be running at `http://localhost:5173`. Open this URL in your browser to start creating projects!
 
 ## 📂 Storage Structure
 
 All uploaded media is kept locally in the backend. When a new project is created, the system generates an isolated folder structure:
+
 ```text
 backend-core/storage/projects/<project_id>/
 ├── raw_audio/    # The main track (.mp3, .wav)
@@ -69,6 +73,7 @@ backend-core/storage/projects/<project_id>/
 ```
 
 ## 📝 Roadmap
+
 1. **Phase 1**: Ingestion & Storage (Completed)
 2. **Phase 2**: Acoustic & Metric Analysis (Whisper & Librosa)
 3. **Phase 3**: Mechanical Layout (JSON generation)
