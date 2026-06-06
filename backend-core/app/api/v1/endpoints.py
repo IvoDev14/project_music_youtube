@@ -83,6 +83,9 @@ def process_audio_language(project_path: str, audio_file_path: str):
         })
         print(f"Detected language '{info.language}' for project {project_path}")
         
+        # Extract BPM before consuming segments for lyrics
+        process_audio_bpm(project_path, audio_file_path)
+        
         # Now consume segments to get lyrics (this takes time)
         lyrics = "\n".join([segment.text.strip() for segment in segments])
         update_project_metadata(project_path, {
@@ -165,7 +168,6 @@ def upload_audio(project_id: str, background_tasks: BackgroundTasks, file: Uploa
         shutil.copyfileobj(file.file, buffer)
     
     background_tasks.add_task(process_audio_language, project_dir, file_path)
-    background_tasks.add_task(process_audio_bpm, project_dir, file_path)
     
     return {"message": "Audio uploaded successfully", "filename": file.filename}
 
